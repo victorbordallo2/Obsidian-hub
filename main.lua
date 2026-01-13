@@ -9,7 +9,7 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
 -- 🔗 MUDE PARA SEU GITHUB RAW
-local BASE_URL = "https://raw.githubusercontent.com/SEU_USUARIO/ObsidianHub/main/"
+local BASE_URL = "https://raw.githubusercontent.com/victorbordallo2/ObsidianHub/main/"
 
 local function loadModule(path)
 	local ok, res = pcall(function()
