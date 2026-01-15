@@ -1,52 +1,123 @@
--- main.lua
+--[[ 
+    Obsidian Hub
+    Autor: victorbordallo2
+    Versão: Loadstring Safe
+--]]
 
-if not game:IsLoaded() then
-	game.Loaded:Wait()
+-- ======================
+-- PROTEÇÃO BÁSICA
+-- ======================
+if _G.ObsidianLoaded then
+    warn("Obsidian Hub já carregado")
+    return
 end
+_G.ObsidianLoaded = true
 
+-- ======================
+-- SERVIÇOS
+-- ======================
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
--- 🔗 MUDE PARA SEU GITHUB RAW
-local BASE_URL = "https://raw.githubusercontent.com/victorbordallo2/ObsidianHub/main/"
+local LocalPlayer = Players.LocalPlayer
 
-local function loadModule(path)
-	local ok, res = pcall(function()
-		return loadstring(game:HttpGet(BASE_URL .. path))()
-	end)
-	if not ok then
-		warn("[ObsidianHub] Erro em:", path)
-		warn(res)
-	end
-	return res
-end
-
--- carregar arquivos
-local Config = loadModule("config.lua")
-local UI = loadModule("ui.lua")
-
-local Modules = {
-	Fly = loadModule("modules/fly.lua"),
-	Speed = loadModule("modules/speed.lua"),
-	Teleport = loadModule("modules/teleport.lua")
+-- ======================
+-- VARIÁVEIS PRINCIPAIS
+-- ======================
+local Settings = {
+    FlySpeed = 50,
+    WalkSpeed = 16,
+    FlyEnabled = false
 }
 
--- iniciar
-Config:Init()
-UI:Init({
-	Config = Config,
-	Modules = Modules
-})
+-- ======================
+-- FUNÇÕES ÚTEIS
+-- ======================
+local function Notify(msg)
+    print("[Obsidian Hub]: "..msg)
+end
 
--- tecla abrir / fechar
-local visible = true
+-- ======================
+-- WALK SPEED
+-- ======================
+local function SetSpeed(value)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = value
+        Notify("Speed definido para "..value)
+    end
+end
+
+-- ======================
+-- FLY SIMPLES
+-- ======================
+local FlyConnection
+local BodyVelocity
+
+local function EnableFly()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+    BodyVelocity = Instance.new("BodyVelocity")
+    BodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    BodyVelocity.Velocity = Vector3.zero
+    BodyVelocity.Parent = char.HumanoidRootPart
+
+    FlyConnection = RunService.RenderStepped:Connect(function()
+        local moveDir = Vector3.zero
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += workspace.CurrentCamera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= workspace.CurrentCamera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= workspace.CurrentCamera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += workspace.CurrentCamera.CFrame.RightVector end
+
+        BodyVelocity.Velocity = moveDir * Settings.FlySpeed
+    end)
+
+    Notify("Fly ativado")
+end
+
+local function DisableFly()
+    if FlyConnection then FlyConnection:Disconnect() end
+    if BodyVelocity then BodyVelocity:Destroy() end
+    Notify("Fly desativado")
+end
+
+-- ======================
+-- TECLAS
+-- ======================
 UserInputService.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
-	if input.KeyCode == Enum.KeyCode.Insert then
-		visible = not visible
-		UI:Toggle(visible)
-	end
+    if gpe then return end
+
+    if input.KeyCode == Enum.KeyCode.F then
+        Settings.FlyEnabled = not Settings.FlyEnabled
+        if Settings.FlyEnabled then
+            EnableFly()
+        else
+            DisableFly()
+        end
+    end
+
+    if input.KeyCode == Enum.KeyCode.KeypadPlus then
+        Settings.FlySpeed += 10
+        Notify("FlySpeed: "..Settings.FlySpeed)
+    end
+
+    if input.KeyCode == Enum.KeyCode.KeypadMinus then
+        Settings.FlySpeed -= 10
+        Notify("FlySpeed: "..Settings.FlySpeed)
+    end
 end)
 
-print("Obsidian Hub carregado")
+-- ======================
+-- AUTO APPLY SPEED
+-- ======================
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    SetSpeed(Settings.WalkSpeed)
+end)
+
+-- ======================
+-- START
+-- ======================
+Notify("Obsidian Hub carregado com sucesso")
+Notify("F = Fly | + - ajusta FlySpeed")
