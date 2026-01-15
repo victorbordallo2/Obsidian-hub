@@ -7,6 +7,7 @@
 -- ======================
 -- PROTEÇÃO BÁSICA
 -- ======================
+print("MAIN CARREGADO COM SUCESSO")
 if _G.ObsidianLoaded then
     warn("Obsidian Hub já carregado")
     return
